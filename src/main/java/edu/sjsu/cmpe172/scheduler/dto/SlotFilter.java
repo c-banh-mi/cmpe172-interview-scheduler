@@ -1,4 +1,4 @@
-package edu.sjsu.cmpe172.scheduler.model;
+package edu.sjsu.cmpe172.scheduler.dto;
 
 import java.time.LocalDate;
 

@@ -8,6 +8,9 @@ CMPE 172 term project: an **Online Appointment Scheduling System** where softwar
 
 Stack: **Java 21, Spring Boot 3.5, PostgreSQL 16, plain JDBC (`JdbcClient`) with hand-written SQL. No ORM.**
 
+> Note: `hibernate-validator` appears in the dependency tree. It is the Bean Validation (`@NotNull`, `@Size`)
+> implementation pulled in by `spring-boot-starter-validation`, **not** Hibernate ORM. There is no JPA/Hibernate ORM on the classpath.
+
 ## Milestone 1: what's implemented
 
 - Layered skeleton: Controller → Service → Repository (JDBC) → PostgreSQL
@@ -25,7 +28,7 @@ Stack: **Java 21, Spring Boot 3.5, PostgreSQL 16, plain JDBC (`JdbcClient`) with
 
 - Global exception handler (JSON errors with proper status codes)
 - Tests: unit (`SlotServiceTest`) + integration against real PostgreSQL via Testcontainers (`ApiIntegrationTest`)
-- Dockerfile, docker-compose.yml, and a GitHub Actions CI workflow
+- Dockerfile and docker-compose.yml (GitHub Actions CI is planned for Milestone 3)
 
 Design docs: [`docs/er-diagram.md`](docs/er-diagram.md) (ER + block diagram).
 
@@ -44,6 +47,11 @@ optimistic locking (used when booking is built in Milestone 2).
 
 ## Run
 
+First, create your local `.env` (gitignored; never commit it):
+```bash
+cp .env.example .env    # then edit DB_PASSWORD
+```
+
 **Option A: everything in Docker**
 ```bash
 docker compose up --build
@@ -53,6 +61,7 @@ docker compose up --build
 **Option B: DB in Docker, app from Maven (for development)**
 ```bash
 docker compose up -d db
+export $(grep -v '^#' .env | xargs)   # load DB_USERNAME / DB_PASSWORD into the shell
 mvn spring-boot:run
 ```
 
@@ -60,11 +69,11 @@ Note: the schema is dropped and re-seeded on every startup (Milestone 1 dev beha
 
 ## Configuration
 
-| Env var | Default (local dev only) |
+| Env var | Default |
 |---|---|
 | `DB_URL` | `jdbc:postgresql://localhost:5432/scheduler` |
 | `DB_USERNAME` | `scheduler` |
-| `DB_PASSWORD` | `scheduler` |
+| `DB_PASSWORD` | _none: set it in `.env`_ |
 | `PORT` | `8080` |
 
 Seeded accounts (password `password123`, stored as BCrypt): providers `alice.mentor`, `raj.mentor`,

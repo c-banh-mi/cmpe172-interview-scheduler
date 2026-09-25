@@ -3,7 +3,7 @@ package edu.sjsu.cmpe172.scheduler.service;
 import edu.sjsu.cmpe172.scheduler.dto.HomeResponse;
 import edu.sjsu.cmpe172.scheduler.dto.ProviderDto;
 import edu.sjsu.cmpe172.scheduler.dto.ServiceDto;
-import edu.sjsu.cmpe172.scheduler.model.SlotFilter;
+import edu.sjsu.cmpe172.scheduler.dto.SlotFilter;
 import edu.sjsu.cmpe172.scheduler.repository.ProviderRepository;
 import edu.sjsu.cmpe172.scheduler.repository.ServiceOfferingRepository;
 import edu.sjsu.cmpe172.scheduler.repository.SlotRepository;

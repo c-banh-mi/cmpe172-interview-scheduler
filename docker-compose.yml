@@ -4,7 +4,7 @@ services:
     environment:
       POSTGRES_DB: scheduler
       POSTGRES_USER: ${DB_USERNAME:-scheduler}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-scheduler}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env (copy .env.example)}
     ports:
       - "5432:5432"
     healthcheck:
@@ -21,6 +21,6 @@ services:
     environment:
       DB_URL: jdbc:postgresql://db:5432/scheduler
       DB_USERNAME: ${DB_USERNAME:-scheduler}
-      DB_PASSWORD: ${DB_PASSWORD:-scheduler}
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env (copy .env.example)}
     ports:
       - "8080:8080"

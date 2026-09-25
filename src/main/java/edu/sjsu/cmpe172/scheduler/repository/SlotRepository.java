@@ -1,6 +1,6 @@
 package edu.sjsu.cmpe172.scheduler.repository;
 
-import edu.sjsu.cmpe172.scheduler.model.SlotFilter;
+import edu.sjsu.cmpe172.scheduler.dto.SlotFilter;
 import edu.sjsu.cmpe172.scheduler.model.SlotView;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.simple.JdbcClient;

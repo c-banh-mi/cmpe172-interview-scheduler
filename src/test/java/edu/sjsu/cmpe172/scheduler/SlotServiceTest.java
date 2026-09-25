@@ -2,7 +2,7 @@ package edu.sjsu.cmpe172.scheduler;
 
 import edu.sjsu.cmpe172.scheduler.dto.PageResponse;
 import edu.sjsu.cmpe172.scheduler.dto.SlotDto;
-import edu.sjsu.cmpe172.scheduler.model.SlotFilter;
+import edu.sjsu.cmpe172.scheduler.dto.SlotFilter;
 import edu.sjsu.cmpe172.scheduler.repository.SlotRepository;
 import edu.sjsu.cmpe172.scheduler.service.SlotService;
 import org.junit.jupiter.api.Test;

@@ -2,7 +2,7 @@ package edu.sjsu.cmpe172.scheduler.service;
 
 import edu.sjsu.cmpe172.scheduler.dto.PageResponse;
 import edu.sjsu.cmpe172.scheduler.dto.SlotDto;
-import edu.sjsu.cmpe172.scheduler.model.SlotFilter;
+import edu.sjsu.cmpe172.scheduler.dto.SlotFilter;
 import edu.sjsu.cmpe172.scheduler.repository.SlotRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
