@@ -1,0 +1,26 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: scheduler
+      POSTGRES_USER: ${DB_USERNAME:-scheduler}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-scheduler}
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d scheduler"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/scheduler
+      DB_USERNAME: ${DB_USERNAME:-scheduler}
+      DB_PASSWORD: ${DB_PASSWORD:-scheduler}
+    ports:
+      - "8080:8080"

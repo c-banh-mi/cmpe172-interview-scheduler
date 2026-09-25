@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Interview Scheduler</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border-bottom: 1px solid #ddd; padding: .4rem; text-align: left; }
+    form { margin: 1rem 0; display: flex; gap: .5rem; flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+  <h1>Interview Scheduler</h1>
+  <p>Book resume reviews and mock interviews with experienced engineers.</p>
+
+  <form id="filters">
+    <select id="service"><option value="">Any service</option></select>
+    <select id="provider"><option value="">Any mentor</option></select>
+    <input type="date" id="date">
+    <button>Search</button>
+  </form>
+
+  <table>
+    <thead><tr><th>When</th><th>Service</th><th>Mentor</th><th>Price</th></tr></thead>
+    <tbody id="slots"></tbody>
+  </table>
+  <p><button id="prev">Prev</button> <span id="pageInfo"></span> <button id="next">Next</button></p>
+
+<script>
+  let page = 0;
+  const $ = id => document.getElementById(id);
+
+  async function loadHome() {
+    const home = await (await fetch('/api/home')).json();
+    home.services.forEach(s => $('service').add(new Option(s.name, s.id)));
+    home.providers.forEach(p => $('provider').add(new Option(p.name, p.id)));
+  }
+
+  async function loadSlots() {
+    const q = new URLSearchParams({ page, size: 5 });
+    if ($('service').value) q.set('serviceId', $('service').value);
+    if ($('provider').value) q.set('providerId', $('provider').value);
+    if ($('date').value) q.set('date', $('date').value);
+    const res = await (await fetch('/api/slots?' + q)).json();
+    $('slots').innerHTML = '';
+    res.items.forEach(s => {
+      const tr = $('slots').insertRow();
+      [new Date(s.startTime).toLocaleString(), s.serviceName, s.providerName, '$' + s.price]
+        .forEach(v => tr.insertCell().textContent = v);
+    });
+    $('pageInfo').textContent = `Page ${res.page + 1} of ${Math.max(res.totalPages, 1)} (${res.totalItems} open)`;
+    $('prev').disabled = res.page === 0;
+    $('next').disabled = res.page + 1 >= res.totalPages;
+  }
+
+  $('filters').onsubmit = e => { e.preventDefault(); page = 0; loadSlots(); };
+  $('prev').onclick = () => { page--; loadSlots(); };
+  $('next').onclick = () => { page++; loadSlots(); };
+  loadHome().then(loadSlots);
+</script>
+</body>
+</html>

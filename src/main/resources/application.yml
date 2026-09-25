@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: interview-scheduler
+  datasource:
+    # Override with env vars in any non-local environment. Never commit real credentials.
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/scheduler}
+    username: ${DB_USERNAME:scheduler}
+    password: ${DB_PASSWORD:scheduler}
+  sql:
+    init:
+      # Run schema.sql then seed.sql on every startup (Milestone 1: dev reset each run).
+      mode: always
+      schema-locations: classpath:schema.sql
+      data-locations: classpath:seed.sql
+
+server:
+  port: ${PORT:8080}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+logging:
+  level:
+    edu.sjsu.cmpe172.scheduler: DEBUG
