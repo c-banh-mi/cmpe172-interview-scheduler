@@ -20,6 +20,9 @@ services:
         condition: service_healthy
     environment:
       DB_URL: jdbc:postgresql://db:5432/scheduler
+      # Match the developer's local date. The JVM time zone becomes the DB session
+      # time zone, which CURRENT_DATE in seed.sql and the date filter depend on.
+      TZ: America/Los_Angeles
       DB_USERNAME: ${DB_USERNAME:-scheduler}
       DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env (copy .env.example)}
     ports:

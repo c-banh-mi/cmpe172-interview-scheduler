@@ -28,7 +28,8 @@ Stack: **Java 21, Spring Boot 3.5, PostgreSQL 16, plain JDBC (`JdbcClient`) with
 
 - Global exception handler (JSON errors with proper status codes)
 - Tests: unit (`SlotServiceTest`) + integration against real PostgreSQL via Testcontainers (`ApiIntegrationTest`)
-- Dockerfile and docker-compose.yml (GitHub Actions CI is planned for Milestone 3)
+- Dockerfile and docker-compose.yml
+- GitHub Actions CI builds and runs all tests on every push ([Actions](https://github.com/c-banh-mi/cmpe172-interview-scheduler/actions))
 
 Design docs:
 - ER diagram: [`docs/er-diagram.png`](docs/er-diagram.png) (Mermaid source: [`docs/er-diagram.mmd`](docs/er-diagram.mmd))
@@ -48,12 +49,21 @@ optimistic locking (used when booking is built in Milestone 2).
 - JDK 21, Maven 3.8+
 - Docker (for PostgreSQL and for the integration tests)
 
-## Run
+## Setup
 
-First, create your local `.env` (gitignored; never commit it):
+Create your local `.env` (gitignored; never commit it). Docker Compose needs it for both build and run:
 ```bash
 cp .env.example .env    # then edit DB_PASSWORD
 ```
+
+## Build
+
+```bash
+mvn -B package          # compile, run tests (needs Docker), produce target/interview-scheduler-*.jar
+docker compose build    # build the app's Docker image (Maven runs inside the image; tests skipped)
+```
+
+## Run
 
 **Option A: everything in Docker**
 ```bash
