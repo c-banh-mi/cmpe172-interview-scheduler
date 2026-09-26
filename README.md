@@ -36,6 +36,7 @@ Design docs:
 - Block diagram: [`docs/block-diagram.png`](docs/block-diagram.png) (Mermaid source: [`docs/block-diagram.mmd`](docs/block-diagram.mmd))
 - Relational schema: [`docs/relational-schema.md`](docs/relational-schema.md)
 - Wireframes (Home, Available slots, Book appointment, Confirmation): [`docs/wireframes/`](docs/wireframes/) and [`docs/wireframes.pdf`](docs/wireframes.pdf)
+- Milestone 1 report: [`docs/CMPE172_Milestone1_Report.pdf`](docs/CMPE172_Milestone1_Report.pdf)
 
 ### Double-booking guard
 
