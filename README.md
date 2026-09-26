@@ -109,4 +109,4 @@ curl "http://localhost:8080/api/slots?serviceId=1&date=$(date -d tomorrow +%F)"
 
 ## Code walkthrough video
 
-- Milestone 1: _TODO: add link_
+- Milestone 1: https://drive.google.com/file/d/1bjLsSmwjBthYJkkrbdtsvMnHgxPHTZpi/view?usp=sharing
