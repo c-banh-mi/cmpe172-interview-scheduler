@@ -1,0 +1,53 @@
+erDiagram
+    users ||--o| providers : "has provider profile"
+    providers ||--o{ availability_slots : "publishes"
+    services ||--o{ availability_slots : "is offered in"
+    availability_slots ||--o{ appointments : "is booked as"
+    users ||--o{ appointments : "books"
+
+    users {
+        BIGSERIAL id PK
+        VARCHAR(50) username UK "NOT NULL"
+        VARCHAR(100) password_hash "NOT NULL, BCrypt"
+        VARCHAR(100) full_name "NOT NULL"
+        VARCHAR(255) email UK "NOT NULL"
+        VARCHAR(20) role "NOT NULL, CUSTOMER | PROVIDER"
+        TIMESTAMP created_at "NOT NULL, default CURRENT_TIMESTAMP"
+    }
+
+    providers {
+        BIGSERIAL id PK
+        BIGINT user_id FK, UK "NOT NULL, -> users.id, ON DELETE CASCADE"
+        VARCHAR(100) display_name "NOT NULL"
+        VARCHAR(200) headline "NOT NULL"
+        TEXT bio
+    }
+
+    services {
+        BIGSERIAL id PK
+        VARCHAR(100) name UK "NOT NULL"
+        TEXT description
+        INT duration_minutes "NOT NULL, > 0"
+        INT price_cents "NOT NULL, >= 0"
+    }
+
+    availability_slots {
+        BIGSERIAL id PK "UK (id, service_id)"
+        BIGINT provider_id FK "NOT NULL, -> providers.id, ON DELETE CASCADE; UK (provider_id, start_time)"
+        BIGINT service_id FK "NOT NULL, -> services.id; UK (id, service_id)"
+        TIMESTAMP start_time "NOT NULL; UK (provider_id, start_time)"
+        TIMESTAMP end_time "NOT NULL, > start_time"
+        VARCHAR(20) status "NOT NULL, default OPEN, OPEN | BOOKED | REMOVED"
+        INT version "NOT NULL, default 0"
+    }
+
+    appointments {
+        BIGSERIAL id PK
+        BIGINT slot_id FK "NOT NULL, (slot_id, service_id) -> availability_slots(id, service_id); unique WHERE status = BOOKED"
+        BIGINT service_id FK "NOT NULL, (slot_id, service_id) -> availability_slots(id, service_id)"
+        BIGINT customer_id FK "NOT NULL, -> users.id"
+        VARCHAR(20) status "NOT NULL, default BOOKED, BOOKED | CANCELLED | COMPLETED"
+        TEXT notes
+        TIMESTAMP created_at "NOT NULL, default CURRENT_TIMESTAMP"
+        TIMESTAMP cancelled_at
+    }

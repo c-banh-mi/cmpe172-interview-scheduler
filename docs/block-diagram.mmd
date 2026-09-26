@@ -1,0 +1,22 @@
+flowchart LR
+    browser["Browser<br/>(index.html / API client)"]
+
+    subgraph app["Spring Boot application"]
+        direction TB
+        controller["Controller<br/>@RestController"]
+        service["Service<br/>@Service, @Transactional"]
+        repository["Repository<br/>JdbcClient / JdbcTemplate, hand-written SQL"]
+        controller --> service --> repository
+    end
+
+    db[("PostgreSQL")]
+
+    subgraph external["External boundary (not built yet)"]
+        notify["Mock Notification Service"]
+    end
+
+    browser -- "HTTP / JSON" --> controller
+    repository -- "JDBC" --> db
+    service -. "commit, then notify" .-> notify
+
+    style external stroke-dasharray: 5 5

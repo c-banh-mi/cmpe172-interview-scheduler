@@ -30,7 +30,10 @@ Stack: **Java 21, Spring Boot 3.5, PostgreSQL 16, plain JDBC (`JdbcClient`) with
 - Tests: unit (`SlotServiceTest`) + integration against real PostgreSQL via Testcontainers (`ApiIntegrationTest`)
 - Dockerfile and docker-compose.yml (GitHub Actions CI is planned for Milestone 3)
 
-Design docs: [`docs/er-diagram.md`](docs/er-diagram.md) (ER + block diagram).
+Design docs:
+- ER diagram: [`docs/er-diagram.png`](docs/er-diagram.png) (Mermaid source: [`docs/er-diagram.mmd`](docs/er-diagram.mmd))
+- Block diagram: [`docs/block-diagram.png`](docs/block-diagram.png) (Mermaid source: [`docs/block-diagram.mmd`](docs/block-diagram.mmd))
+- Relational schema: [`docs/relational-schema.md`](docs/relational-schema.md)
 
 ### Double-booking guard
 
