@@ -3,10 +3,12 @@ package edu.sjsu.cmpe172.scheduler.service;
 import edu.sjsu.cmpe172.scheduler.dto.PageResponse;
 import edu.sjsu.cmpe172.scheduler.dto.SlotDto;
 import edu.sjsu.cmpe172.scheduler.dto.SlotFilter;
+import edu.sjsu.cmpe172.scheduler.exception.NotFoundException;
 import edu.sjsu.cmpe172.scheduler.repository.SlotRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -37,5 +39,13 @@ public class SlotService {
                 .map(DtoMapper::toDto)
                 .toList();
         return PageResponse.of(items, page, size, total);
+    }
+
+    /** One slot that can still be booked (OPEN, in the future), for the booking form. */
+    public SlotDto findOpenSlot(long id) {
+        return slots.findViewById(id)
+                .filter(s -> "OPEN".equals(s.status()) && s.startTime().isAfter(LocalDateTime.now()))
+                .map(DtoMapper::toDto)
+                .orElseThrow(() -> new NotFoundException("Slot " + id + " is not available"));
     }
 }

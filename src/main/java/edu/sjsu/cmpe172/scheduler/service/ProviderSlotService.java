@@ -16,11 +16,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /** A provider managing their own availability. */
 @Service
 public class ProviderSlotService {
+
+    private static final DateTimeFormatter READABLE = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     private final SlotRepository slots;
     private final ServiceOfferingRepository services;
@@ -53,14 +56,15 @@ public class ProviderSlotService {
         LocalDateTime end = start.plusMinutes(service.durationMinutes());
 
         if (slots.overlapsExisting(providerId, start, end)) {
-            throw new ConflictException("You already have a slot overlapping " + start + " to " + end);
+            throw new ConflictException("You already have a slot overlapping "
+                    + READABLE.format(start) + " to " + READABLE.format(end));
         }
         long id;
         try {
             id = slots.insert(providerId, service.id(), start, end);
         } catch (DuplicateKeyException e) {
             // uq_slot_provider_start: a concurrent request created the same start time.
-            throw new ConflictException("You already have a slot starting at " + start);
+            throw new ConflictException("You already have a slot starting at " + READABLE.format(start));
         }
         return slots.findViewById(id)
                 .map(DtoMapper::toProviderSlotDto)

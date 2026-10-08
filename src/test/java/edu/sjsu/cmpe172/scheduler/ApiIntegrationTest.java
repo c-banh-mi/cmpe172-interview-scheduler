@@ -84,4 +84,17 @@ class ApiIntegrationTest extends IntegrationTestBase {
                 .param("slot", bookedSlot)
                 .update());
     }
+
+    @Test
+    void singleSlotIsVisibleOnlyWhileOpen() throws Exception {
+        long open = openSlotId("alice.mentor", "Mock Coding Interview");
+        long booked = jdbc.sql("SELECT slot_id FROM appointments WHERE status = 'BOOKED' LIMIT 1")
+                .query(Long.class).single();
+
+        mvc.perform(get("/api/slots/{id}", open))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.providerName").value("Alice Nguyen"));
+        mvc.perform(get("/api/slots/{id}", booked)).andExpect(status().isNotFound());
+        mvc.perform(get("/api/slots/{id}", 99999)).andExpect(status().isNotFound());
+    }
 }

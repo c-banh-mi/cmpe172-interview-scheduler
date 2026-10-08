@@ -90,3 +90,19 @@ Each entry: what was decided, and why.
 
 19. **Integration tests reset the database before every test** (TRUNCATE + re-run `seed.sql`, in
     `IntegrationTestBase`), so test order does not matter now that tests write data.
+
+20. **Frontend pages follow the Milestone 1 wireframes** (grayscale panels, dark primary buttons): Home, Available
+    Slots (filter + Prev/Next paging), Book Appointment (summary + notes), Confirmation, plus Login, My Appointments
+    (Upcoming/History tabs with Cancel) and a provider page "My Availability" (add slot, remove open slots,
+    appointments booked with me). Hash routing (`#/slots`, `#/book/7`, ...) in `static/app.js`; Bootstrap 5.3 from
+    the jsDelivr CDN. Nav links show by role, but the server enforces access regardless of what the page shows.
+    The confirmation page says the mentor can see the booking. The wireframe's "confirmation sent to your email"
+    line was left out because notifications arrive in Milestone 3.
+
+21. **Added `GET /api/slots/{id}`** (public; 404 unless the slot is OPEN and in the future) so the booking page can
+    load a slot's details after a page refresh.
+
+22. **UI checked in a real browser:** headless Chromium (Playwright, installed in a scratch folder outside the
+    repo) ran browse → filter → book (redirected to login first) → confirmation → cancel → history, plus the provider
+    add/duplicate (409)/remove flow, the wrong-role page, bad login, and a 390 px wide phone layout. No JavaScript
+    errors. This was a manual check; it is not part of `mvn package`.

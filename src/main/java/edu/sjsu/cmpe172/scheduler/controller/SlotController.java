@@ -6,6 +6,7 @@ import edu.sjsu.cmpe172.scheduler.dto.SlotFilter;
 import edu.sjsu.cmpe172.scheduler.service.SlotService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -31,5 +32,11 @@ public class SlotController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         return slotService.findOpenSlots(new SlotFilter(providerId, serviceId, date), page, size);
+    }
+
+    /** A single open slot, e.g. GET /api/slots/7. 404 if it is booked, removed, or past. */
+    @GetMapping("/{id}")
+    public SlotDto openSlot(@PathVariable long id) {
+        return slotService.findOpenSlot(id);
     }
 }
