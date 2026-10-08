@@ -1,0 +1,9 @@
+# Test-only profile: run the integration tests against an already-running PostgreSQL
+# instead of starting one with Testcontainers (for machines where Docker is not available).
+#   mvn -B package -Dspring.profiles.active=localdb
+# The database's tables are emptied and re-seeded before every test.
+spring:
+  datasource:
+    url: ${TEST_DB_URL:jdbc:postgresql://localhost:5433/scheduler_test}
+    username: ${TEST_DB_USERNAME:scheduler_test}
+    password: ${TEST_DB_PASSWORD:scheduler_test}

@@ -8,7 +8,7 @@ spring:
     password: ${DB_PASSWORD:}
   sql:
     init:
-      # Run schema.sql then seed.sql on every startup (Milestone 1: dev reset each run).
+      # Run schema.sql then seed.sql on every startup. Both are idempotent: they only add what is missing.
       mode: always
       schema-locations: classpath:schema.sql
       data-locations: classpath:seed.sql

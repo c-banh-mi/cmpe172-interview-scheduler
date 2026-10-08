@@ -6,6 +6,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public class ServiceOfferingRepository {
@@ -31,5 +32,16 @@ public class ServiceOfferingRepository {
                         """)
                 .query(MAPPER)
                 .list();
+    }
+
+    public Optional<ServiceOffering> findById(long id) {
+        return jdbc.sql("""
+                        SELECT id, name, description, duration_minutes, price_cents
+                          FROM services
+                         WHERE id = :id
+                        """)
+                .param("id", id)
+                .query(MAPPER)
+                .optional();
     }
 }
