@@ -1,10 +1,10 @@
-flowchart LR
+flowchart TB
     browser["Browser<br/>(index.html + app.js SPA, Bootstrap)"]
 
     subgraph app["Spring Boot application"]
         direction TB
         subgraph security["Spring Security filter chain"]
-            direction TB
+            direction LR
             csrf["CSRF check<br/>XSRF-TOKEN cookie = X-XSRF-TOKEN header"]
             session["Session login<br/>JSESSIONID, BCrypt, JdbcUserDetailsService"]
             rbac["URL role rules<br/>/api/customer/** CUSTOMER, /api/provider/** PROVIDER<br/>JSON 401 / 403"]
