@@ -1,21 +1,31 @@
 flowchart LR
-    browser["Browser<br/>(index.html / API client)"]
+    browser["Browser<br/>(index.html + app.js SPA, Bootstrap)"]
 
     subgraph app["Spring Boot application"]
         direction TB
-        controller["Controller<br/>@RestController"]
-        service["Service<br/>@Service, @Transactional"]
-        repository["Repository<br/>JdbcClient / JdbcTemplate, hand-written SQL"]
-        controller --> service --> repository
+        subgraph security["Spring Security filter chain"]
+            direction TB
+            csrf["CSRF check<br/>XSRF-TOKEN cookie = X-XSRF-TOKEN header"]
+            session["Session login<br/>JSESSIONID, BCrypt, JdbcUserDetailsService"]
+            rbac["URL role rules<br/>/api/customer/** CUSTOMER, /api/provider/** PROVIDER<br/>JSON 401 / 403"]
+            csrf --> session --> rbac
+        end
+        controller["Controller<br/>@RestController, @Valid DTOs"]
+        service["Service<br/>@Service, @Transactional (READ COMMITTED), retry"]
+        repository["Repository<br/>JdbcClient, hand-written SQL, version check"]
+        handler["GlobalExceptionHandler<br/>400 / 403 / 404 / 409 JSON"]
+        rbac --> controller --> service --> repository
+        controller -. "exceptions" .-> handler
     end
 
-    db[("PostgreSQL")]
+    db[("PostgreSQL<br/>users, providers, services,<br/>availability_slots, appointments")]
 
     subgraph external["External boundary (not built yet)"]
         notify["Mock Notification Service"]
     end
 
-    browser -- "HTTP / JSON" --> controller
+    browser -- "HTTP / JSON + session cookie" --> csrf
+    session -- "role from users row (JDBC)" --> db
     repository -- "JDBC" --> db
     service -. "commit, then notify" .-> notify
 

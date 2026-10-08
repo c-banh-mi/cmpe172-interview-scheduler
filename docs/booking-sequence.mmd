@@ -1,0 +1,75 @@
+sequenceDiagram
+    autonumber
+    participant UI as Browser<br/>app.js bookPage()
+    participant SEC as Spring Security<br/>filter chain
+    participant DS as DispatcherServlet
+    participant C as CustomerController
+    participant BS as BookingService<br/>(retry loop, no tx)
+    participant SB as SlotBooker<br/>@Transactional proxy
+    participant SR as SlotRepository
+    participant AR as AppointmentRepository
+    participant DB as PostgreSQL
+    participant EH as GlobalExceptionHandler
+
+    UI->>SEC: POST /api/customer/appointments<br/>{slotId, serviceId, notes}<br/>Cookie JSESSIONID + header X-XSRF-TOKEN
+    SEC->>SEC: CsrfFilter: header must equal XSRF-TOKEN cookie
+    SEC->>SEC: Load SecurityContext (UserPrincipal) from HTTP session
+    alt not logged in
+        SEC-->>UI: 401 JSON (authenticationEntryPoint)
+    else role is not CUSTOMER (or CSRF token missing)
+        SEC-->>UI: 403 JSON (accessDeniedHandler)
+    end
+    SEC->>DS: authorized: hasRole("CUSTOMER")
+    DS->>C: book(@AuthenticationPrincipal AppUser, @Valid BookingRequest)
+    opt body fails @NotNull / @Positive / @Size
+        C-->>EH: MethodArgumentNotValidException
+        EH-->>UI: 400 JSON
+    end
+    C->>BS: book(customer, request)
+    BS->>BS: role == CUSTOMER, else ForbiddenException (403)
+
+    loop attempt = 1 .. MAX_ATTEMPTS (3), each attempt a new transaction
+        BS->>SB: bookOnce(customerId, request)
+        SB->>DB: BEGIN (isolation READ COMMITTED)
+        SB->>SR: findById(slotId)
+        SR->>DB: SELECT id, ..., status, version FROM availability_slots WHERE id = ?
+        DB-->>SR: slot row (version = N)
+        alt slot missing / wrong service / not OPEN or started / customer has an overlapping booking
+            SB->>DB: ROLLBACK
+            SB-->>EH: NotFound (404) / IllegalArgument (400) / SlotUnavailable or Conflict (409)
+            EH-->>UI: 404 / 400 / 409 JSON
+        end
+        SB->>AR: customerHasOverlap(customerId, start, end)
+        AR->>DB: SELECT EXISTS (...)
+        SB->>SR: markBooked(slotId, N)
+        SR->>DB: UPDATE availability_slots SET status = 'BOOKED', version = version + 1<br/>WHERE id = ? AND version = N AND status = 'OPEN'
+        Note over SR,DB: A concurrent writer waits on the row lock, then re-checks<br/>the WHERE clause against the committed row (version is now N+1)
+        alt 1 row updated: we won the race
+            SB->>AR: insert(slotId, serviceId, customerId, notes)
+            AR->>DB: INSERT INTO appointments ... RETURNING id
+            alt unique index uq_appt_active_slot violated (backstop)
+                DB-->>AR: duplicate key error
+                SB->>DB: ROLLBACK
+                SB-->>BS: DuplicateKeyException
+                BS-->>EH: SlotUnavailableException
+                EH-->>UI: 409 Conflict JSON
+            end
+            SB->>DB: COMMIT
+            SB-->>BS: appointment id
+        else 0 rows updated: another transaction changed the slot first
+            SB->>DB: ROLLBACK
+            SB-->>BS: OptimisticLockingFailureException
+            alt attempt < 3
+                BS->>BS: backOff(attempt): sleep 10-50 ms x attempt, then retry<br/>(next read sees BOOKED, so 409 above)
+            else attempt == 3
+                BS-->>EH: SlotUnavailableException ("busy")
+                EH-->>UI: 409 Conflict JSON
+            end
+        end
+    end
+
+    BS->>AR: findViewById(id)
+    AR->>DB: SELECT ... JOIN slot, service, provider, customer
+    BS-->>C: AppointmentDto
+    C-->>UI: 201 Created + Location /api/customer/appointments/{id}
+    UI->>UI: show confirmation page (on 409: banner "pick another slot")

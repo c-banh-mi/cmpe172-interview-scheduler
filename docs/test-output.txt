@@ -1,0 +1,23 @@
+Milestone 2 test run: mvn -B package
+Date: 2026-10-08 09:02 PDT   Commit: d244d3d   Java: openjdk version "21.0.12.1" 2026-08-18
+Database: local PostgreSQL 16 via -Dspring.profiles.active=localdb (Docker was not reachable from WSL for Testcontainers).
+CI (GitHub Actions, plain 'mvn -B verify' with Testcontainers PostgreSQL 16): d244d3d success https://github.com/c-banh-mi/cmpe172-interview-scheduler/actions/runs/37740338107
+
+Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.005 s  SlotServiceTest
+Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.152 s  AppointmentServiceTest
+Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 5.143 s  BookingFlowIntegrationTest
+Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.153 s  AuthIntegrationTest
+Tests run: 11, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.339 s  ConcurrentBookingTest
+Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.609 s  ApiIntegrationTest
+Tests run: 11, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.154 s  BookingServiceTest
+Tests run: 10, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.059 s  ProviderSlotServiceTest
+Tests run: 67, Failures: 0, Errors: 0, Skipped: 0
+
+Two-thread booking race (ConcurrentBookingTest, 10 repetitions), from the test log:
+      6   Customer jordan.dev booked slot 1 (appointment 2, attempt 1)
+      4   Customer sam.dev booked slot 1 (appointment 2, attempt 1)
+     10   Version conflict booking slot 1 (attempt 1/3)
+  (each repetition: one 'Version conflict' for the loser, which then got 409; the winner varies)
+
+BUILD SUCCESS
+Total time:  12.502 s

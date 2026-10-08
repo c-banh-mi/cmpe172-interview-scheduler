@@ -82,7 +82,9 @@ active appointment.
 
 Design docs:
 - ER diagram: [`docs/er-diagram.png`](docs/er-diagram.png) (Mermaid source: [`docs/er-diagram.mmd`](docs/er-diagram.mmd))
-- Block diagram: [`docs/block-diagram.png`](docs/block-diagram.png) (Mermaid source: [`docs/block-diagram.mmd`](docs/block-diagram.mmd))
+- Block diagram (Milestone 2: with the Spring Security layer): [`docs/block-diagram.png`](docs/block-diagram.png) (Mermaid source: [`docs/block-diagram.mmd`](docs/block-diagram.mmd))
+- Booking sequence diagram (`POST /api/customer/appointments`, retry and 409 paths): [`docs/booking-sequence.png`](docs/booking-sequence.png) (Mermaid source: [`docs/booking-sequence.mmd`](docs/booking-sequence.mmd))
+- Milestone 2 test results: [`docs/test-output.txt`](docs/test-output.txt); report snippets: [`docs/m2-report-material.md`](docs/m2-report-material.md); video order: [`docs/m2-video-cheatsheet.md`](docs/m2-video-cheatsheet.md)
 - Relational schema: [`docs/relational-schema.md`](docs/relational-schema.md)
 - Wireframes (Home, Available slots, Book appointment, Confirmation): [`docs/wireframes/`](docs/wireframes/) and [`docs/wireframes.pdf`](docs/wireframes.pdf)
 - Milestone 1 report: [`docs/CMPE172_Milestone1_Report.pdf`](docs/CMPE172_Milestone1_Report.pdf)
