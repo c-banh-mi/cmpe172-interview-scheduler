@@ -1,7 +1,7 @@
 package edu.sjsu.cmpe172.scheduler.controller;
 
 import edu.sjsu.cmpe172.scheduler.dto.UserDto;
-import edu.sjsu.cmpe172.scheduler.model.AppUser;
+import edu.sjsu.cmpe172.scheduler.security.UserPrincipal;
 import edu.sjsu.cmpe172.scheduler.service.DtoMapper;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -17,9 +17,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/auth")
 public class AuthController {
 
-    /** The logged-in user, or 204 No Content if nobody is logged in. */
+    /**
+     * The logged-in user, or 204 No Content if nobody is logged in. (For an anonymous request
+     * the principal is not a UserPrincipal, so Spring passes null.)
+     */
     @GetMapping("/me")
-    public ResponseEntity<UserDto> me(@AuthenticationPrincipal(expression = "user") AppUser me) {
-        return me == null ? ResponseEntity.noContent().build() : ResponseEntity.ok(DtoMapper.toDto(me));
+    public ResponseEntity<UserDto> me(@AuthenticationPrincipal UserPrincipal me) {
+        return me == null ? ResponseEntity.noContent().build() : ResponseEntity.ok(DtoMapper.toDto(me.user()));
     }
 }
