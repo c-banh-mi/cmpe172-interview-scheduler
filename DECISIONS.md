@@ -34,9 +34,8 @@ plus this summary commit. No `milestone-2` tag yet: tag after you add the report
 - Manual browser check with headless Chromium: all customer and provider flows worked, no JS errors (decision #22).
 
 ### Not done / not verified
-- **The `docker compose up --build` path was not run** (Docker Desktop was off and has no WSL integration). The
-  Maven build inside the Dockerfile is the same `mvn package` that passes, but please run `docker compose up --build`
-  once before recording the video.
+- ~~The `docker compose up --build` path was not run~~ **Done 2026-10-08:** after Docker Desktop was started,
+  `docker compose down -v` + `docker compose up --build` worked and a curl login/book/cancel passed.
 - **Report PDF and walkthrough video:** yours to write and record (course rule). The checklist below shows where
   each topic is in the code.
 - Small known limits: two simultaneous bookings by the *same* customer of two *different* overlapping slots could
@@ -139,8 +138,9 @@ Each entry: what was decided, and why.
 
 17. **`java.time.Clock` bean**, so unit tests can fix "now" for the past/future rules.
 
-18. **Local test database (environment workaround).** Docker Desktop was not running and its WSL integration
-    is off, so Testcontainers could not start PostgreSQL on this machine. I installed PostgreSQL 16 inside
+18. **Local test database (environment workaround).** Docker Desktop was not running, so Testcontainers could not
+    start PostgreSQL on this machine. (Correction, 2026-10-08: I first thought WSL integration was off too. It was not;
+    once Docker Desktop was started, plain `mvn -B package` ran with Testcontainers in WSL: 67 tests, 0 failures.) I installed PostgreSQL 16 inside
     WSL (port **5433**, so it does not collide with `docker compose`'s 5432; database/user/password
     `scheduler_test`) and added a test-only Spring profile `localdb`
     (`src/test/resources/application-localdb.yml`). Under that profile `TestcontainersConfig` is skipped.

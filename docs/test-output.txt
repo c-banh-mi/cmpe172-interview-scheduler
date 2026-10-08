@@ -1,6 +1,7 @@
 Milestone 2 test run: mvn -B package
 Date: 2026-10-08 09:02 PDT   Commit: d244d3d   Java: openjdk version "21.0.12.1" 2026-08-18
-Database: local PostgreSQL 16 via -Dspring.profiles.active=localdb (Docker was not reachable from WSL for Testcontainers).
+Database: local PostgreSQL 16 via -Dspring.profiles.active=localdb.
+Also run on 2026-10-08 11:06 PDT as plain 'mvn -B package' with Testcontainers in WSL (Docker Desktop running): Tests run: 67, Failures: 0, Errors: 0, Skipped: 0, BUILD SUCCESS.
 CI (GitHub Actions, plain 'mvn -B verify' with Testcontainers PostgreSQL 16): d244d3d success https://github.com/c-banh-mi/cmpe172-interview-scheduler/actions/runs/37740338107
 
 Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.005 s  SlotServiceTest
