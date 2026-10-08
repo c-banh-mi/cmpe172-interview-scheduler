@@ -5,6 +5,9 @@
   --app-border: #9a9a9a;
 }
 
+/* Bootstrap's d-flex is display:flex !important, which would beat the hidden attribute. */
+[hidden] { display: none !important; }
+
 body { background: var(--app-bg); }
 .app-nav { background: var(--app-panel); }
 
