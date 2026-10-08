@@ -68,11 +68,13 @@ Source: `src/main/resources/schema.sql` (PostgreSQL 16). Constraint names withou
 - **FKs:**
   - `availability_slots_provider_id_fkey`: provider_id → providers(id) ON DELETE CASCADE
   - `availability_slots_service_id_fkey`: service_id → services(id)
-- **UNIQUE:** `uq_slot_provider_start` (provider_id, start_time); `uq_slot_id_service` (id, service_id)
+- **UNIQUE:** `uq_slot_id_service` (id, service_id)
 - **CHECK:** `availability_slots_status_check`: status IN ('OPEN', 'BOOKED', 'REMOVED'); `ck_slot_time_order`: end_time > start_time
 - **Indexes:**
-  - `availability_slots_pkey`, `uq_slot_provider_start`, `uq_slot_id_service` (unique B-tree indexes backing the constraints)
+  - `availability_slots_pkey`, `uq_slot_id_service` (unique B-tree indexes backing the constraints)
+  - `uq_slot_provider_start`: **UNIQUE** B-tree on (provider_id, start_time) **WHERE status <> 'REMOVED'** (Milestone 2: was a table constraint; removed slots no longer block re-adding the same time)
   - `ix_slots_open_start`: B-tree on (status, start_time)
+- **version:** optimistic-lock counter; every status change (book, cancel/reopen, remove) does `version = version + 1`
 
 ## appointments
 

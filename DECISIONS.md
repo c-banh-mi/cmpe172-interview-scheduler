@@ -106,3 +106,12 @@ Each entry: what was decided, and why.
     repo) ran browse → filter → book (redirected to login first) → confirmation → cancel → history, plus the provider
     add/duplicate (409)/remove flow, the wrong-role page, bad login, and a 390 px wide phone layout. No JavaScript
     errors. This was a manual check; it is not part of `mvn package`.
+
+23. **docker-compose.yml got a named volume `pgdata`** for PostgreSQL. Without it, `docker compose down` followed by
+    `up` started from an empty anonymous volume, which hid the "data survives restarts" change in #6.
+    `docker compose down -v` is the documented reset.
+
+24. **README rewritten for Milestone 2:** endpoint table with the role for each endpoint, a concurrency summary,
+    a list of the test classes, the `localdb` test option, and a curl login/book example that handles CSRF. The
+    report PDF and walkthrough video are yours to make (course rule on AI-written report text); the README only
+    documents the code.
