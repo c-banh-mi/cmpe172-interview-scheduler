@@ -1,6 +1,66 @@
 # Milestone 2: decisions log
 
-_Summary goes here when the milestone is finished._
+## Summary (autonomous run, night of 2026-10-07)
+
+### What was built
+- **Login + RBAC:** Spring Security session login (`POST /api/auth/login`), BCrypt hashes, role read from
+  `users.role` over JDBC, `/api/customer/**` customer-only and `/api/provider/**` provider-only. JSON 401 (not
+  logged in) and 403 (wrong role or not the owner). CSRF protection on.
+- **Customer:** browse/filter/paginate slots (SQL LIMIT/OFFSET, from M1), book (`POST /api/customer/appointments`),
+  confirmation, my appointments (upcoming/history), owner-only cancel that reopens the slot.
+- **Provider:** add slots tied to a service, remove own open slots (soft delete), view appointments booked with them.
+- **Statuses:** BOOKED, CANCELLED, COMPLETED (a scheduled job, and shown immediately in queries).
+- **Concurrency:** optimistic version check in a READ COMMITTED `@Transactional` attempt, retried up to 3 times in
+  fresh transactions. The partial unique index `uq_appt_active_slot` stays as the database backstop.
+- **Errors/validation:** Bean Validation on request bodies; global handler for 400/403/404/409; no stack traces.
+- **Frontend:** Bootstrap 5 single-page app following the M1 wireframes, plus login, my appointments and the
+  provider dashboard.
+- **Persistence:** schema/seed no longer wipe data on startup; named Docker volume; upgrade from an M1 database works.
+- **Docs:** README (API table, concurrency, tests, curl example), relational-schema.md updated, this file.
+
+Commits (all pushed to `main`): `b3d859d` backend, `15b1584` tests, `f988e63` frontend, `3bff5da` README/compose,
+plus this summary commit. No `milestone-2` tag yet: tag after you add the report PDF and video link.
+
+### Test results
+- `mvn -B package -Dspring.profiles.active=localdb` (local PostgreSQL 16, see decision #18): **67 tests, 0 failures,
+  0 errors**, BUILD SUCCESS, on every commit.
+  - Unit: BookingServiceTest 11, AppointmentServiceTest 8, ProviderSlotServiceTest 10, SlotServiceTest 2.
+  - Integration (real PostgreSQL): ConcurrentBookingTest 11 (two-thread race ×10 + forced interleaving),
+    BookingFlowIntegrationTest 9, AuthIntegrationTest 9, ApiIntegrationTest 7.
+- In all 10 two-thread repetitions, the log shows a real version conflict ("Version conflict booking slot 1
+  (attempt 1/3)"). The winner varied (jordan 6, sam 4), and the loser got 409.
+- **GitHub Actions CI** (plain `mvn -B verify` with Testcontainers): green for `b3d859d`, `15b1584`, `f988e63`, `3bff5da`.
+  See the Actions tab for the later commits.
+- Manual browser check with headless Chromium: all customer and provider flows worked, no JS errors (decision #22).
+
+### Not done / not verified
+- **The `docker compose up --build` path was not run** (Docker Desktop was off and has no WSL integration). The
+  Maven build inside the Dockerfile is the same `mvn package` that passes, but please run `docker compose up --build`
+  once before recording the video.
+- **Report PDF and walkthrough video:** yours to write and record (course rule). The checklist below shows where
+  each topic is in the code.
+- Small known limits: two simultaneous bookings by the *same* customer of two *different* overlapping slots could
+  both pass the overlap check (it is not version-protected; fixing it needs a lock per customer or an exclusion
+  constraint). Same for a provider creating two overlapping slots at once with different start times. Appointment
+  lists are capped at 200 rows and not paginated. The session principal keeps the BCrypt hash in server memory
+  (never sent to the client).
+- Submission zip `CMPE172_Milestone2_FirstName_LastName.zip`: build it once the report exists, for example
+  `git archive -o CMPE172_Milestone2_Charlie_Banh.zip HEAD` and then add the PDF.
+
+### Where things are (for your report and video)
+| Topic | Code |
+|---|---|
+| Frontend → backend flow | `static/app.js` `api()` and `bookPage()` → `CustomerController.book` → `BookingService.book` → `SlotBooker.bookOnce` → `SlotRepository.markBooked` / `AppointmentRepository.insert` |
+| Race condition + optimistic lock | `SlotRepository.markBooked` (SQL + comment), `SlotBooker.bookOnce` |
+| Transaction + isolation level | `@Transactional(isolation = READ_COMMITTED)` on `SlotBooker.bookOnce`, `AppointmentService.cancel` |
+| Retry | `BookingService.book` loop, `backOff` |
+| DB backstop | `schema.sql` `uq_appt_active_slot`; `DuplicateKeyException` catch in `BookingService` |
+| Two-thread test | `ConcurrentBookingTest` |
+| Login / BCrypt / session / role from DB | `SecurityConfig`, `JdbcUserDetailsService`, `UserRepository.findByUsername`, `UserPrincipal` |
+| 403 rules | `SecurityConfig.authorizeHttpRequests`; ownership in `AppointmentService.cancel`, `ProviderSlotService.remove` |
+| Status codes | `GlobalExceptionHandler` |
+| Validation | `BookingRequest`, `CreateSlotRequest` (`@NotNull`, `@Future`, `@Size`) + `@Valid` in controllers |
+| Pagination | `SlotRepository.findOpen` (`LIMIT :limit OFFSET :offset`) |
 
 ## Decisions
 
