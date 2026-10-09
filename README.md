@@ -88,6 +88,7 @@ Design docs:
 - Relational schema: [`docs/relational-schema.md`](docs/relational-schema.md)
 - Wireframes (Home, Available slots, Book appointment, Confirmation): [`docs/wireframes/`](docs/wireframes/) and [`docs/wireframes.pdf`](docs/wireframes.pdf)
 - Milestone 1 report: [`docs/CMPE172_Milestone1_Report.pdf`](docs/CMPE172_Milestone1_Report.pdf)
+- Milestone 2 report: [`docs/CMPE172_Milestone2_Report.pdf`](docs/CMPE172_Milestone2_Report.pdf)
 
 ## Prerequisites
 
@@ -185,3 +186,4 @@ curl -s -b jar "http://localhost:8080/api/customer/appointments?scope=upcoming"
 ## Code walkthrough video
 
 - Milestone 1: https://drive.google.com/file/d/1bjLsSmwjBthYJkkrbdtsvMnHgxPHTZpi/view?usp=sharing
+- Milestone 2: https://drive.google.com/file/d/10eYO288ZeQLtlxiJdYc3K5R9Ii3TWqV-/view?usp=sharing
