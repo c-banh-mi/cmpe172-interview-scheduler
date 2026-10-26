@@ -27,8 +27,12 @@ services:
       TZ: America/Los_Angeles
       DB_USERNAME: ${DB_USERNAME:-scheduler}
       DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env (copy .env.example)}
+      # Notification service the gateway calls. Default: the mock controller inside this container
+      # (http://localhost:8080/mock-notify). Set it to an unreachable URL to watch the fallback.
+      NOTIFICATION_BASE_URL: ${NOTIFICATION_BASE_URL:-http://localhost:8080/mock-notify}
     ports:
       - "8080:8080"
+    restart: unless-stopped
 
 volumes:
   pgdata:

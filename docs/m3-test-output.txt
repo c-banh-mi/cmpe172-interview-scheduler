@@ -1,0 +1,50 @@
+# Milestone 3: mvn -B verify (2026-10-26, PostgreSQL 16 via Testcontainers)
+
+## Notification log lines (NotificationIntegrationTest, NotificationDownIntegrationTest)
+
+INFO [o-auto-1-exec-1] e.s.c.s.m.MockNotificationController     : [mock-notify] Delivered BOOKING_CONFIRMED to jordan@example.com: "Hi Jordan Kim, your Resume Review with Alice Nguyen on Wed, Oct 28 at 9:00 AM is confirmed (appointment #2)."
+INFO [       notify-1] e.s.c.s.notification.NotificationSender  : Sent BOOKING_CONFIRMED to jordan@example.com (key appointment-2-BOOKING_CONFIRMED, notification 7c08bbbe-1b9f-4e67-b3b1-45d68b6e02fa, attempt 1)
+WARN [o-auto-1-exec-2] e.s.c.s.m.MockNotificationController     : [mock-notify] SLOW: waiting 1000 ms before answering request #1
+WARN [       notify-2] e.s.c.s.notification.NotificationSender  : Notification appointment-2-BOOKING_CONFIRMED attempt 1/3 failed: Notification service timed out. Retrying in 10 ms
+WARN [o-auto-1-exec-3] e.s.c.s.m.MockNotificationController     : [mock-notify] SLOW: waiting 1000 ms before answering request #2
+WARN [       notify-2] e.s.c.s.notification.NotificationSender  : Notification appointment-2-BOOKING_CONFIRMED attempt 2/3 failed: Notification service timed out. Retrying in 20 ms
+WARN [o-auto-1-exec-4] e.s.c.s.m.MockNotificationController     : [mock-notify] SLOW: waiting 1000 ms before answering request #3
+WARN [       notify-2] e.s.c.s.notification.NotificationSender  : Notification service unavailable after 3 attempt(s); parked appointment-2-BOOKING_CONFIRMED for redelivery (Notification service timed out)
+INFO [o-auto-1-exec-2] e.s.c.s.m.MockNotificationController     : [mock-notify] Delivered BOOKING_CONFIRMED to sam@example.com: "Hi Sam Lee, your Mock System Design with Raj Patel on Tue, Oct 27 at 3:00 PM is confirmed (appointment #2)."
+INFO [o-auto-1-exec-5] e.s.c.s.m.MockNotificationController     : [mock-notify] Duplicate appointment-2-BOOKING_CONFIRMED ignored (already stored as 5ae790da-c6e8-4160-9e23-01a46f78e546)
+INFO [           main] e.s.c.s.n.NotificationRedeliveryJob      : Redelivered appointment-2-BOOKING_CONFIRMED to sam@example.com after 3 failed attempt(s) (service said DUPLICATE)
+INFO [o-auto-1-exec-3] e.s.c.s.m.MockNotificationController     : [mock-notify] Duplicate appointment-2-BOOKING_CONFIRMED ignored (already stored as 5ae790da-c6e8-4160-9e23-01a46f78e546)
+INFO [o-auto-1-exec-4] e.s.c.s.m.MockNotificationController     : [mock-notify] Duplicate appointment-2-BOOKING_CONFIRMED ignored (already stored as 5ae790da-c6e8-4160-9e23-01a46f78e546)
+WARN [o-auto-1-exec-6] e.s.c.s.m.MockNotificationController     : [mock-notify] DOWN: refusing request #1 (appointment-2-BOOKING_CONFIRMED)
+WARN [       notify-3] e.s.c.s.notification.NotificationSender  : Notification appointment-2-BOOKING_CONFIRMED attempt 1/3 failed: Notification service error: 503 SERVICE_UNAVAILABLE. Retrying in 10 ms
+WARN [o-auto-1-exec-7] e.s.c.s.m.MockNotificationController     : [mock-notify] DOWN: refusing request #2 (appointment-2-BOOKING_CONFIRMED)
+WARN [       notify-3] e.s.c.s.notification.NotificationSender  : Notification appointment-2-BOOKING_CONFIRMED attempt 2/3 failed: Notification service error: 503 SERVICE_UNAVAILABLE. Retrying in 20 ms
+WARN [o-auto-1-exec-8] e.s.c.s.m.MockNotificationController     : [mock-notify] DOWN: refusing request #3 (appointment-2-BOOKING_CONFIRMED)
+WARN [       notify-3] e.s.c.s.notification.NotificationSender  : Notification service unavailable after 3 attempt(s); parked appointment-2-BOOKING_CONFIRMED for redelivery (Notification service error: 503 SERVICE_UNAVAILABLE)
+WARN [o-auto-1-exec-9] e.s.c.s.m.MockNotificationController     : [mock-notify] DOWN: refusing request #4 (appointment-2-BOOKING_CONFIRMED)
+WARN [           main] e.s.c.s.n.NotificationRedeliveryJob      : Redelivery of appointment-2-BOOKING_CONFIRMED failed (attempt 4): Notification service error: 503 SERVICE_UNAVAILABLE
+INFO [-auto-1-exec-10] e.s.c.s.m.MockNotificationController     : [mock-notify] Delivered BOOKING_CONFIRMED to jordan@example.com: "Hi Jordan Kim, your Resume Review with Maria Gonzalez on Tue, Oct 27 at 9:30 AM is confirmed (appointment #2)."
+INFO [           main] e.s.c.s.n.NotificationRedeliveryJob      : Redelivered appointment-2-BOOKING_CONFIRMED to jordan@example.com after 4 failed attempt(s) (service said ACCEPTED)
+INFO [o-auto-1-exec-1] e.s.c.s.m.MockNotificationController     : [mock-notify] Delivered BOOKING_CONFIRMED to jordan@example.com: "Hi Jordan Kim, your Mock Coding Interview with Alice Nguyen on Tue, Oct 27 at 10:00 AM is confirmed (appointment #2)."
+INFO [       notify-4] e.s.c.s.notification.NotificationSender  : Sent BOOKING_CONFIRMED to jordan@example.com (key appointment-2-BOOKING_CONFIRMED, notification 81774d15-8504-43b5-9194-06e629adcecf, attempt 1)
+INFO [o-auto-1-exec-2] e.s.c.s.m.MockNotificationController     : [mock-notify] Delivered BOOKING_CANCELLED to jordan@example.com: "Hi Jordan Kim, your Mock Coding Interview with Alice Nguyen on Tue, Oct 27 at 10:00 AM has been cancelled (appointment #2)."
+INFO [       notify-5] e.s.c.s.notification.NotificationSender  : Sent BOOKING_CANCELLED to jordan@example.com (key appointment-2-BOOKING_CANCELLED, notification 4ef0e5f9-d04b-49da-8ed4-4883072a4f33, attempt 1)
+[INFO] Running edu.sjsu.cmpe172.scheduler.NotificationSenderTest
+WARN [           main] e.s.c.s.notification.NotificationSender  : Notification appointment-7-BOOKING_CONFIRMED attempt 1/3 failed: Connection refused. Retrying in 1 ms
+WARN [           main] e.s.c.s.notification.NotificationSender  : Notification appointment-7-BOOKING_CONFIRMED attempt 2/3 failed: Connection refused. Retrying in 2 ms
+
+## Results
+
+Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.959 s -- in edu.sjsu.cmpe172.scheduler.SlotServiceTest
+Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 9.077 s -- in edu.sjsu.cmpe172.scheduler.NotificationIntegrationTest
+Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.211 s -- in edu.sjsu.cmpe172.scheduler.NotificationSenderTest
+Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.092 s -- in edu.sjsu.cmpe172.scheduler.AppointmentServiceTest
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 8.693 s -- in edu.sjsu.cmpe172.scheduler.NotificationDownIntegrationTest
+Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0 s -- in edu.sjsu.cmpe172.scheduler.BookingFlowIntegrationTest
+Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.732 s -- in edu.sjsu.cmpe172.scheduler.AuthIntegrationTest
+Tests run: 11, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.838 s -- in edu.sjsu.cmpe172.scheduler.ConcurrentBookingTest
+Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.299 s -- in edu.sjsu.cmpe172.scheduler.ApiIntegrationTest
+Tests run: 13, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.168 s -- in edu.sjsu.cmpe172.scheduler.BookingServiceTest
+Tests run: 10, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.099 s -- in edu.sjsu.cmpe172.scheduler.ProviderSlotServiceTest
+Tests run: 79, Failures: 0, Errors: 0, Skipped: 0
+BUILD SUCCESS

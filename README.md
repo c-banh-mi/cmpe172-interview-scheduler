@@ -17,6 +17,70 @@ Layered design: **Controller → Service → Repository (JDBC, hand-written SQL)
 DTOs, never raw rows. The frontend is a Bootstrap 5 single-page app (`static/index.html` + `app.js`) that calls the
 JSON API below with `fetch()`.
 
+### Milestone 3: distribution boundary, observability, delivery
+
+![Distribution diagram](docs/distribution-diagram.png)
+
+**Client → Appointment Scheduler → Notification Service.** Booking and cancelling send a confirmation to a
+**mock notification service** (`mocknotify/MockNotificationController`, `/mock-notify/**`). It is a second Spring
+controller in this project, but it is treated as a separate system: the scheduler reaches it only over HTTP
+through a Gateway, and the two sides share no Java classes, only the JSON shape.
+
+- **Coarse-grained interface:** `NotificationGateway.send(NotificationRequest)` is one remote call carrying one
+  DTO `{idempotencyKey, recipient, type, message, appointmentId}`. The finished message travels with the call, so
+  the service never calls back into the scheduler. `RestNotificationGateway` is the HTTP implementation; a real
+  channel (Slack/Discord webhook, SMTP) would be another implementation of the same interface.
+- **Commit, then notify:** `SlotBooker.bookOnce` and `AppointmentService.cancel` publish an
+  `AppointmentChangedEvent` inside their transaction. `AppointmentNotificationListener` is
+  `@TransactionalEventListener(AFTER_COMMIT)` + `@Async`: it runs only if the transaction committed, on a
+  background thread (`notify-N`). The HTTP response does not wait for the notification service. A booking attempt
+  that loses a race rolls back, so its event is dropped and a retried booking sends exactly one confirmation.
+- **Timeout:** connect 1 s, read 2 s (`notification.connect-timeout`, `notification.read-timeout`).
+- **Retry:** `NotificationSender` tries 3 times with exponential backoff (200 ms, 400 ms) on timeouts, refused
+  connections and 5xx answers. A 4xx answer is not retried (resending the same request cannot fix it).
+- **Fallback:** if every attempt fails, the notification is stored in `pending_notifications` (status `PENDING`;
+  `FAILED` for a 4xx). `NotificationRedeliveryJob` re-sends PENDING rows every 30 s. After 10 total attempts, the
+  row becomes `FAILED`.
+- **Idempotent retries:** each notification has a fixed key `appointment-{id}-{BOOKING_CONFIRMED|BOOKING_CANCELLED}`,
+  sent in the body and as an `Idempotency-Key` header. The mock stores each key once and answers `DUPLICATE` for a
+  repeat. Case covered: a timed-out call that did reach the service, followed by a retry.
+
+Mock service endpoints (demo only; disable with `mock-notify.enabled=false`):
+
+| Method | Path | Description |
+|---|---|---|
+| POST | `/mock-notify/api/notifications` | Receive a notification. 201 ACCEPTED, 200 DUPLICATE, 503 when DOWN |
+| GET | `/mock-notify/api/notifications` | Everything "sent" so far |
+| GET / PUT | `/mock-notify/admin/mode?mode=UP\|SLOW\|DOWN&delayMs=5000` | Make the mock slow or fail |
+
+**Observability**
+
+| What | Where |
+|---|---|
+| `GET /health` | 200 `{"status":"UP","database":{"status":"UP","responseTimeMs":1},"notifications":{"status":"UP","pending":0,"failed":0}}`. Database check = `SELECT 1`. Database unreachable → **503** `"status":"DOWN"`. Parked notifications → `notifications.status: "DEGRADED"` while the app stays UP. Docker `HEALTHCHECK` calls it. |
+| Metric `scheduler.booking` (timer) | Tag `outcome` = `booked` / `unavailable` / `conflict` / `rejected` / `error`. Gives bookings, failed bookings and average booking latency (`TOTAL_TIME / COUNT`). `GET /actuator/metrics/scheduler.booking?tag=outcome:booked` |
+| Metric `scheduler.notifications` (counter) | Tags `result` = `sent` / `parked` / `redelivered` / `failed`, `type`. `GET /actuator/metrics/scheduler.notifications?tag=result:parked` |
+| Logs | INFO `Customer jordan.dev booked slot 11 (appointment 3, attempt 1)`, `Sent BOOKING_CONFIRMED to jordan@example.com ...`, `Redelivered appointment-3-BOOKING_CONFIRMED ...`; WARN `Notification appointment-3-BOOKING_CONFIRMED attempt 1/3 failed: ... Retrying in 200 ms`, `Notification service unavailable after 3 attempt(s); parked ...`, `Booking failed: customer sam.dev slot 4: ...`; ERROR `Notification ... rejected, not retrying`, `Giving up on notification ...`, `Health check: database unreachable`, `Could not send or park ... notification` |
+
+**Try the failure and recovery** (app running on :8080):
+
+```bash
+curl -X PUT 'localhost:8080/mock-notify/admin/mode?mode=DOWN'   # or SLOW&delayMs=5000
+# book in the UI -> 201 right away; logs show 3 attempts, then "parked ... for redelivery"
+curl localhost:8080/health                                       # notifications: DEGRADED, pending: 1
+curl -X PUT 'localhost:8080/mock-notify/admin/mode?mode=UP'
+# within 30 s: "Redelivered ..."; /health back to UP; GET /mock-notify/api/notifications shows it once
+```
+
+**Delivery:** `Dockerfile` (multi-stage, `HEALTHCHECK` on `/health`) and `docker-compose.yml` (app + PostgreSQL).
+GitHub Actions (`.github/workflows/ci.yml`) runs `mvn -B verify` (all tests, PostgreSQL via Testcontainers),
+uploads the test reports and builds the Docker image on every push.
+
+**Tests:** `NotificationDownIntegrationTest` (booking and cancel succeed while the notification service is
+unreachable; the notifications are parked; `/health` is DEGRADED), `NotificationIntegrationTest` (real HTTP on a
+random port: one notification per book/cancel; slow service → timeout → parked → redelivered with no duplicate;
+503 → parked → redelivered; `/health`; metric), `NotificationSenderTest` (retry/fallback rules).
+
 ### Milestone 2: booking, login, concurrency
 
 - **Login + RBAC:** username/password checked against a BCrypt hash; the role is read from `users.role` over JDBC;
@@ -50,7 +114,8 @@ JSON API below with `fetch()`.
 | POST | `/api/provider/slots` | PROVIDER | Body `{"serviceId", "startTime": "2026-11-02T10:00"}`. 201, 409 if it overlaps |
 | DELETE | `/api/provider/slots/{id}` | PROVIDER (owner) | Remove an OPEN slot (soft delete). 204 |
 | GET | `/api/provider/appointments?scope=upcoming\|history` | PROVIDER | Appointments booked with me |
-| GET | `/actuator/health` | anyone | Health check |
+| GET | `/health` | anyone | Health check with database check (503 if the database is down) |
+| GET | `/actuator/health`, `/actuator/metrics/{name}` | anyone | Spring Actuator health and metrics |
 
 Write requests need the CSRF token: send the `XSRF-TOKEN` cookie's value in an `X-XSRF-TOKEN` header
 (`app.js` does this; see the curl example below).

@@ -89,6 +89,17 @@ public class AppointmentRepository {
         return jdbc.sql(VIEW_SELECT + " WHERE a.id = :id").param("id", id).query(VIEW_MAPPER).optional();
     }
 
+    /** Where to send this appointment's notifications. */
+    public Optional<String> findCustomerEmail(long appointmentId) {
+        return jdbc.sql("""
+                        SELECT u.email FROM appointments a JOIN users u ON u.id = a.customer_id
+                         WHERE a.id = :id
+                        """)
+                .param("id", appointmentId)
+                .query(String.class)
+                .optional();
+    }
+
     /** BOOKED -> CANCELLED. Returns 0 if it was no longer BOOKED (e.g. cancelled twice at once). */
     public int cancel(long id) {
         return jdbc.sql("""

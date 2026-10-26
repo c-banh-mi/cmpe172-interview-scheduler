@@ -11,6 +11,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
@@ -21,10 +22,12 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 /**
  * Shared setup for tests that run the whole app against a real PostgreSQL.
  * Every test starts from exactly the seed data, so tests cannot affect each other.
+ * Notifications are off here; the Notification*IntegrationTest classes turn them on.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestcontainersConfig.class)
+@TestPropertySource(properties = "notification.enabled=false")
 abstract class IntegrationTestBase {
 
     @Autowired

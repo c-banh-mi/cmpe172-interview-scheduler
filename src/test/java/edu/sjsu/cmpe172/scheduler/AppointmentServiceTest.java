@@ -36,7 +36,7 @@ class AppointmentServiceTest {
 
     private final AppointmentRepository appointments = mock(AppointmentRepository.class);
     private final SlotRepository slots = mock(SlotRepository.class);
-    private final AppointmentService service = new AppointmentService(appointments, slots, CLOCK);
+    private final AppointmentService service = new AppointmentService(appointments, slots, CLOCK, event -> { });
 
     private void givenAppointment(long customerId, String status, LocalDateTime start) {
         when(appointments.findById(APPT_ID))

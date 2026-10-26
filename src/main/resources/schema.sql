@@ -74,3 +74,23 @@ CREATE TABLE IF NOT EXISTS appointments (
 CREATE UNIQUE INDEX IF NOT EXISTS uq_appt_active_slot ON appointments (slot_id) WHERE status = 'BOOKED';
 
 CREATE INDEX IF NOT EXISTS ix_appt_customer ON appointments (customer_id);
+
+-- Milestone 3: fallback store for notifications the notification service did not accept.
+-- A booking never waits on this table: a row is written only AFTER the booking committed and
+-- every retry failed. NotificationRedeliveryJob re-sends PENDING rows with the same
+-- idempotency_key, so the notification service can drop a copy it already received.
+CREATE TABLE IF NOT EXISTS pending_notifications (
+    id              BIGSERIAL    PRIMARY KEY,
+    idempotency_key VARCHAR(100) NOT NULL UNIQUE,     -- e.g. appointment-12-BOOKING_CONFIRMED
+    appointment_id  BIGINT       NOT NULL REFERENCES appointments (id) ON DELETE CASCADE,
+    recipient       VARCHAR(255) NOT NULL,
+    type            VARCHAR(30)  NOT NULL,
+    message         TEXT         NOT NULL,
+    status          VARCHAR(20)  NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'SENT', 'FAILED')),
+    attempts        INT          NOT NULL DEFAULT 0,  -- delivery attempts so far, including the first burst
+    last_error      VARCHAR(500),
+    created_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS ix_pending_notifications_status ON pending_notifications (status, created_at);

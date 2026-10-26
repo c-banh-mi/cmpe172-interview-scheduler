@@ -8,14 +8,19 @@ import edu.sjsu.cmpe172.scheduler.exception.NotFoundException;
 import edu.sjsu.cmpe172.scheduler.exception.SlotUnavailableException;
 import edu.sjsu.cmpe172.scheduler.model.AppointmentView;
 import edu.sjsu.cmpe172.scheduler.model.Slot;
+import edu.sjsu.cmpe172.scheduler.notification.AppointmentChangedEvent;
+import edu.sjsu.cmpe172.scheduler.notification.NotificationType;
 import edu.sjsu.cmpe172.scheduler.repository.AppointmentRepository;
 import edu.sjsu.cmpe172.scheduler.repository.SlotRepository;
 import edu.sjsu.cmpe172.scheduler.service.BookingService;
 import edu.sjsu.cmpe172.scheduler.service.SlotBooker;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DuplicateKeyException;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import static edu.sjsu.cmpe172.scheduler.TestData.ALICE;
@@ -42,8 +47,10 @@ class BookingServiceTest {
 
     private final SlotRepository slots = mock(SlotRepository.class);
     private final AppointmentRepository appointments = mock(AppointmentRepository.class);
+    private final List<Object> events = new ArrayList<>();
+    private final SimpleMeterRegistry metrics = new SimpleMeterRegistry();
     private final BookingService service =
-            new BookingService(new SlotBooker(slots, appointments, CLOCK), appointments);
+            new BookingService(new SlotBooker(slots, appointments, CLOCK, events::add), appointments, metrics);
 
     private final BookingRequest request = new BookingRequest(SLOT_ID, SERVICE_ID, "new-grad backend");
 
@@ -73,6 +80,29 @@ class BookingServiceTest {
         assertThat(booked.id()).isEqualTo(99);
         assertThat(booked.status()).isEqualTo("BOOKED");
         verify(slots).markBooked(SLOT_ID, 3);   // the version we read is the version we require
+    }
+
+    @Test
+    void successfulBookingPublishesOneConfirmationEventAndIsTimed() {
+        givenSlot(slot(Slot.OPEN, 3, TOMORROW_10));
+        when(slots.markBooked(SLOT_ID, 3)).thenReturn(1);
+        when(appointments.insert(SLOT_ID, SERVICE_ID, SAM.id(), "new-grad backend")).thenReturn(99L);
+        givenAppointmentView(99);
+
+        service.book(SAM, request);
+
+        assertThat(events).containsExactly(new AppointmentChangedEvent(99, NotificationType.BOOKING_CONFIRMED));
+        assertThat(metrics.timer("scheduler.booking", "outcome", "booked").count()).isEqualTo(1);
+    }
+
+    @Test
+    void failedBookingPublishesNothingAndIsCountedAsUnavailable() {
+        givenSlot(slot(Slot.BOOKED, 4, TOMORROW_10));
+
+        assertThrows(SlotUnavailableException.class, () -> service.book(SAM, request));
+
+        assertThat(events).isEmpty();
+        assertThat(metrics.timer("scheduler.booking", "outcome", "unavailable").count()).isEqualTo(1);
     }
 
     @Test

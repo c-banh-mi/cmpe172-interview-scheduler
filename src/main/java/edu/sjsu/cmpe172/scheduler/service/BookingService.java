@@ -2,12 +2,15 @@ package edu.sjsu.cmpe172.scheduler.service;
 
 import edu.sjsu.cmpe172.scheduler.dto.AppointmentDto;
 import edu.sjsu.cmpe172.scheduler.dto.BookingRequest;
+import edu.sjsu.cmpe172.scheduler.exception.ConflictException;
 import edu.sjsu.cmpe172.scheduler.exception.ForbiddenException;
 import edu.sjsu.cmpe172.scheduler.exception.NotFoundException;
 import edu.sjsu.cmpe172.scheduler.exception.SlotUnavailableException;
 import edu.sjsu.cmpe172.scheduler.model.AppUser;
 import edu.sjsu.cmpe172.scheduler.model.Role;
 import edu.sjsu.cmpe172.scheduler.repository.AppointmentRepository;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DuplicateKeyException;
@@ -30,13 +33,42 @@ public class BookingService {
 
     private final SlotBooker booker;
     private final AppointmentRepository appointments;
+    private final MeterRegistry metrics;
 
-    public BookingService(SlotBooker booker, AppointmentRepository appointments) {
+    public BookingService(SlotBooker booker, AppointmentRepository appointments, MeterRegistry metrics) {
         this.booker = booker;
         this.appointments = appointments;
+        this.metrics = metrics;
     }
 
+    /**
+     * Metric: every call is timed into "scheduler.booking", tagged with its outcome
+     * (booked, unavailable, conflict, rejected, error). That one timer gives bookings and
+     * failed bookings (count per outcome) and average booking latency (totalTime / count).
+     */
     public AppointmentDto book(AppUser customer, BookingRequest req) {
+        Timer.Sample sample = Timer.start(metrics);
+        String outcome = "error";
+        try {
+            AppointmentDto booked = bookWithRetry(customer, req);
+            outcome = "booked";
+            return booked;
+        } catch (SlotUnavailableException e) {
+            outcome = "unavailable";
+            log.warn("Booking failed: customer {} slot {}: {}", customer.username(), req.slotId(), e.getMessage());
+            throw e;
+        } catch (ConflictException e) {
+            outcome = "conflict";
+            throw e;
+        } catch (ForbiddenException | NotFoundException | IllegalArgumentException e) {
+            outcome = "rejected";
+            throw e;
+        } finally {
+            sample.stop(metrics.timer("scheduler.booking", "outcome", outcome));
+        }
+    }
+
+    private AppointmentDto bookWithRetry(AppUser customer, BookingRequest req) {
         // The URL rule in SecurityConfig already blocks providers; this keeps the rule true
         // even if the service is called from somewhere else.
         if (customer.role() != Role.CUSTOMER) {

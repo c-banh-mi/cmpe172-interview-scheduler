@@ -5,8 +5,11 @@ import edu.sjsu.cmpe172.scheduler.exception.ConflictException;
 import edu.sjsu.cmpe172.scheduler.exception.NotFoundException;
 import edu.sjsu.cmpe172.scheduler.exception.SlotUnavailableException;
 import edu.sjsu.cmpe172.scheduler.model.Slot;
+import edu.sjsu.cmpe172.scheduler.notification.AppointmentChangedEvent;
+import edu.sjsu.cmpe172.scheduler.notification.NotificationType;
 import edu.sjsu.cmpe172.scheduler.repository.AppointmentRepository;
 import edu.sjsu.cmpe172.scheduler.repository.SlotRepository;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Isolation;
@@ -26,11 +29,14 @@ public class SlotBooker {
     private final SlotRepository slots;
     private final AppointmentRepository appointments;
     private final Clock clock;
+    private final ApplicationEventPublisher events;
 
-    public SlotBooker(SlotRepository slots, AppointmentRepository appointments, Clock clock) {
+    public SlotBooker(SlotRepository slots, AppointmentRepository appointments, Clock clock,
+                      ApplicationEventPublisher events) {
         this.slots = slots;
         this.appointments = appointments;
         this.clock = clock;
+        this.events = events;
     }
 
     /**
@@ -65,6 +71,11 @@ public class SlotBooker {
         }
         // Backstop: the partial unique index uq_appt_active_slot rejects a second BOOKED row
         // for this slot even if the check above were ever bypassed (DuplicateKeyException).
-        return appointments.insert(slot.id(), slot.serviceId(), customerId, req.notes());
+        long appointmentId = appointments.insert(slot.id(), slot.serviceId(), customerId, req.notes());
+
+        // Delivered only after this transaction commits (see AppointmentNotificationListener).
+        // A lost race rolls back, so a retried booking never sends a second confirmation.
+        events.publishEvent(new AppointmentChangedEvent(appointmentId, NotificationType.BOOKING_CONFIRMED));
+        return appointmentId;
     }
 }

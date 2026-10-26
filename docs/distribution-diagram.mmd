@@ -1,0 +1,30 @@
+flowchart TB
+    client["<b>Client</b><br/>Browser SPA / curl"]
+
+    subgraph scheduler["Appointment Scheduler (Spring Boot)"]
+        direction TB
+        api["CustomerController<br/>POST /api/customer/appointments<br/>POST .../{id}/cancel"]
+        tx["SlotBooker / AppointmentService<br/>@Transactional: write rows + publish event"]
+        listener["AppointmentNotificationListener<br/>AFTER_COMMIT, @Async (notify-N thread)"]
+        sender["NotificationSender<br/>retry: 3 attempts, 200 ms / 400 ms backoff<br/>fallback: park in pending_notifications"]
+        job["NotificationRedeliveryJob<br/>every 30 s, same idempotency key"]
+        gateway["NotificationGateway interface<br/>RestNotificationGateway<br/>timeouts: connect 1 s, read 2 s"]
+        api --> tx
+        tx -. "1. COMMIT<br/>2. then event" .-> listener
+        listener --> sender --> gateway
+        job --> gateway
+    end
+
+    db[("PostgreSQL<br/>appointments, availability_slots, ...<br/>pending_notifications")]
+
+    subgraph external["Notification Service (mock, separate system)"]
+        mock["MockNotificationController<br/>POST /mock-notify/api/notifications<br/>stores each idempotencyKey once"]
+    end
+
+    client -- "HTTP/JSON<br/>201 right after commit" --> api
+    tx -- "JDBC (booking tx)" --> db
+    sender -- "park" --> db
+    db -- "PENDING rows" --> job
+    gateway == "HTTP POST, one coarse-grained call<br/>NotificationRequest DTO:<br/>idempotencyKey, recipient, type,<br/>message, appointmentId" ==> mock
+
+    style external stroke-dasharray: 5 5

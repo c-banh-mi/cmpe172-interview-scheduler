@@ -17,3 +17,12 @@ jobs:
       # Integration tests start PostgreSQL via Testcontainers (Docker is preinstalled on ubuntu-latest).
       - name: Build and test
         run: mvn -B verify
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: target/surefire-reports/
+      # Proves the Dockerfile still builds (the image is not pushed anywhere).
+      - name: Build Docker image
+        run: docker build -t interview-scheduler:ci .

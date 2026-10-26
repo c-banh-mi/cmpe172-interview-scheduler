@@ -59,7 +59,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/home", "/api/slots", "/api/slots/*", "/api/services", "/api/providers")
                                 .permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                        .requestMatchers("/health", "/actuator/health", "/actuator/info").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/actuator/metrics", "/actuator/metrics/**").permitAll()
+                        // The mock notification service is a separate system with its own (absent) auth;
+                        // the scheduler calls it server-to-server, so there is no browser session or CSRF token.
+                        .requestMatchers("/mock-notify/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/", "/index.html", "/app.js", "/app.css", "/favicon.ico")
                                 .permitAll()
                         .requestMatchers("/error").permitAll()
@@ -86,7 +90,8 @@ public class SecurityConfig {
                 // and the page echoes it back in the X-XSRF-TOKEN header on POST/DELETE.
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                        .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()))
+                        .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
+                        .ignoringRequestMatchers("/mock-notify/**"))
                 .addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class);
         return http.build();
     }

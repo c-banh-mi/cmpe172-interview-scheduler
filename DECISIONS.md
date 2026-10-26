@@ -1,3 +1,57 @@
+# Milestone 3: decisions log
+
+### Where things are (for your report and video)
+| Requirement | Code |
+|---|---|
+| Mock notification service | `mocknotify/MockNotificationController`, `MockNotificationStore`, `MockNotificationMessage` |
+| Gateway + coarse-grained DTO | `notification/NotificationGateway`, `RestNotificationGateway`, `NotificationRequest`, `NotificationReceipt` |
+| Timeout | `RestNotificationGateway` constructor (`setConnectTimeout` / `setReadTimeout`), `NotificationProperties` |
+| Retry + fallback | `NotificationSender.deliver` / `fallBack` |
+| Commit-then-notify | `events.publishEvent(...)` in `SlotBooker.bookOnce` and `AppointmentService.cancel`; `AppointmentNotificationListener.onAppointmentChanged` (`AFTER_COMMIT`, `@Async`) |
+| Idempotent retries | `NotificationRequest.keyFor`, `Idempotency-Key` header, `MockNotificationStore.accept` (`computeIfAbsent`), `ON CONFLICT DO NOTHING` in `PendingNotificationRepository.park` |
+| Failure scenario + recovery | `pending_notifications` in `schema.sql`, `NotificationRedeliveryJob.redeliver` |
+| Health endpoint | `controller/HealthController` |
+| Metric | `BookingService.book` (`scheduler.booking` timer), `NotificationSender.count` (`scheduler.notifications`) |
+| Logging | `log.info/warn/error` in `BookingService`, `AppointmentService`, `NotificationSender`, `NotificationRedeliveryJob`, `HealthController`, `MockNotificationController` |
+| Docker / CI | `Dockerfile` (`HEALTHCHECK`), `docker-compose.yml`, `.github/workflows/ci.yml` |
+| Required test | `NotificationDownIntegrationTest`; also `NotificationIntegrationTest`, `NotificationSenderTest` |
+| Diagram | `docs/distribution-diagram.mmd` / `.png` |
+
+### Decisions
+1. **Event + `@TransactionalEventListener(AFTER_COMMIT)`, not a direct call after `book()` returns.** The event
+   is tied to the transaction: it fires only on commit, and a rolled-back attempt (lost race, retried by
+   `BookingService`) never notifies. Cancel uses the same path.
+2. **`@Async` listener.** With a sync call, a slow service would delay the booking response by up to
+   3 × 2 s + backoff. Async: the response returns right after the commit (measured 0.06 s with the mock DOWN).
+3. **Hand-written retry loop** (like `BookingService`), no Spring Retry/Resilience4j. No new dependency, and each
+   step is easy to show in the video.
+4. **Fallback is a database table, not memory.** Parked notifications survive a restart and are visible in
+   `/health`. Only failed notifications are written there; successful ones are not stored.
+5. **Mock lives in the same app but has its own DTO class** and is reached only over real HTTP (default base URL
+   `http://localhost:${port}/mock-notify`), so the timeouts are real. `NOTIFICATION_BASE_URL` points it elsewhere.
+6. **`/health` stays UP when only notifications fail** (`DEGRADED`), because bookings still work. It goes 503 only
+   when the database is unreachable. Hikari `connection-timeout` lowered to 5 s so that answer comes quickly.
+7. **One timer for the booking metric** with an `outcome` tag, not several counters: it gives counts per outcome
+   and latency from one meter.
+
+### Known limits
+- If the JVM dies after a commit but before the notification is sent or parked, that notification is lost.
+  A transactional outbox (insert the row inside the booking transaction) would close this gap. Normal shutdown
+  waits up to 15 s for queued notifications.
+- `/mock-notify/**` (including the mode switch and the list of sent messages with emails) and
+  `/actuator/metrics/**` are open without login, for the demo. In a real deployment, the mock would not be
+  deployed (`mock-notify.enabled=false`) and metrics would be restricted.
+- Booking and cancel notifications run on separate background threads, so if a customer cancels within
+  milliseconds of booking, the cancellation could arrive before the confirmation.
+- With several app instances, two redelivery jobs could send the same row; the idempotency key makes that harmless.
+
+### Verified
+- `mvn -B verify` with Testcontainers: 79 tests, 0 failures (run several times).
+- `docker compose up --build`: container `healthy`; booked with the mock DOWN → 201 in 0.06 s → parked →
+  mock UP → redelivered within 30 s, stored once; `/health` DEGRADED → UP; `/actuator/metrics/scheduler.booking` OK.
+
+---
+
 # Milestone 2: decisions log
 
 ## Summary (autonomous run, night of 2026-10-07)

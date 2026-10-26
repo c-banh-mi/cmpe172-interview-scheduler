@@ -6,15 +6,38 @@ spring:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/scheduler}
     username: ${DB_USERNAME:scheduler}
     password: ${DB_PASSWORD:}
+    hikari:
+      # Fail fast when the database is down (default 30 s), so GET /health answers 503 quickly.
+      connection-timeout: 5000
   sql:
     init:
       # Run schema.sql then seed.sql on every startup. Both are idempotent: they only add what is missing.
       mode: always
       schema-locations: classpath:schema.sql
       data-locations: classpath:seed.sql
+  task:
+    execution:
+      thread-name-prefix: notify-   # @Async notification threads show up as notify-1, notify-2 in logs
+      shutdown:
+        # On shutdown, finish notifications already queued instead of dropping them.
+        await-termination: true
+        await-termination-period: 15s
 
 server:
   port: ${PORT:8080}
+
+# Milestone 3: commit-then-notify to the (mock) notification service. See NotificationProperties.
+notification:
+  enabled: ${NOTIFICATION_ENABLED:true}
+  # Default: the mock controller inside this same app (/mock-notify). Point it elsewhere to use
+  # another notification service; the request DTO and the gateway interface stay the same.
+  base-url: ${NOTIFICATION_BASE_URL:http://localhost:${local.server.port:${server.port}}/mock-notify}
+  connect-timeout: 1s
+  read-timeout: 2s
+  max-attempts: 3          # right after the commit: 3 tries, waiting 200 ms then 400 ms
+  backoff: 200ms
+  redelivery-interval: PT30S   # NotificationRedeliveryJob re-sends parked notifications this often
+  max-redeliveries: 10
 
 management:
   endpoints:

@@ -6,8 +6,13 @@ import edu.sjsu.cmpe172.scheduler.exception.ForbiddenException;
 import edu.sjsu.cmpe172.scheduler.exception.NotFoundException;
 import edu.sjsu.cmpe172.scheduler.model.AppUser;
 import edu.sjsu.cmpe172.scheduler.model.Appointment;
+import edu.sjsu.cmpe172.scheduler.notification.AppointmentChangedEvent;
+import edu.sjsu.cmpe172.scheduler.notification.NotificationType;
 import edu.sjsu.cmpe172.scheduler.repository.AppointmentRepository;
 import edu.sjsu.cmpe172.scheduler.repository.SlotRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,14 +25,19 @@ import java.util.List;
 @Service
 public class AppointmentService {
 
+    private static final Logger log = LoggerFactory.getLogger(AppointmentService.class);
+
     private final AppointmentRepository appointments;
     private final SlotRepository slots;
     private final Clock clock;
+    private final ApplicationEventPublisher events;
 
-    public AppointmentService(AppointmentRepository appointments, SlotRepository slots, Clock clock) {
+    public AppointmentService(AppointmentRepository appointments, SlotRepository slots, Clock clock,
+                              ApplicationEventPublisher events) {
         this.appointments = appointments;
         this.slots = slots;
         this.clock = clock;
+        this.events = events;
     }
 
     /** scope is "upcoming" or "history". */
@@ -71,6 +81,9 @@ public class AppointmentService {
             throw new ConflictException("Appointment " + appointmentId + " was already cancelled");
         }
         slots.reopen(appt.slotId());
+        log.info("Customer {} cancelled appointment {} (slot {} reopened)", customer.username(), appointmentId, appt.slotId());
+        // Sent after commit, like the booking confirmation.
+        events.publishEvent(new AppointmentChangedEvent(appointmentId, NotificationType.BOOKING_CANCELLED));
 
         return appointments.findViewById(appointmentId)
                 .map(DtoMapper::toDto)

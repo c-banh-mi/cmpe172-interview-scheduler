@@ -11,4 +11,7 @@ FROM eclipse-temurin:21-jre
 WORKDIR /app
 COPY --from=build /app/target/interview-scheduler-*.jar app.jar
 EXPOSE 8080
+# Docker marks the container unhealthy if GET /health stops answering 200 (e.g. database unreachable).
+HEALTHCHECK --interval=15s --timeout=5s --start-period=40s --retries=3 \
+  CMD curl -fsS http://localhost:8080/health || exit 1
 ENTRYPOINT ["java", "-jar", "app.jar"]
